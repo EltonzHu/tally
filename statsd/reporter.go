@@ -39,6 +39,12 @@ const (
 	DefaultHistogramBucketNamePrecision = uint(6)
 )
 
+var (
+	tagSeperator = "_"
+	keyValueSeperator = "-"
+)
+
+
 type cactusStatsReporter struct {
 	statter    statsd.Statter
 	sampleRate float32
@@ -109,10 +115,7 @@ func sortKeys(outKeys []string, tags map[string]string) {
 	sort.Strings(outKeys)
 }
 
-func (r *cactusStatsReporter) ReportCounter(name string, tags map[string]string, value int64) {
-	tagSeperator := "_"
-	keyValueSeperator := "-"
-
+func mergeTagsIntoName (tags map[string]string, name string) string {
 	keys := make([]string, len(tags))
 	sortKeys(keys, tags)
 
@@ -122,39 +125,22 @@ func (r *cactusStatsReporter) ReportCounter(name string, tags map[string]string,
 		v = toCamelCase(v)
 		name = name + tagSeperator + k + keyValueSeperator + v
 	}
+
+	return name
+}
+
+func (r *cactusStatsReporter) ReportCounter(name string, tags map[string]string, value int64) {
+	name = mergeTagsIntoName(tags, name)
 	r.statter.Inc(name, value, r.sampleRate)
 }
 
 func (r *cactusStatsReporter) ReportGauge(name string, tags map[string]string, value float64) {
-	tagSeperator := "_"
-	keyValueSeperator := "-"
-
-	keys := make([]string, len(tags))
-	sortKeys(keys, tags)
-
-	for _, k := range keys {
-		v := tags[k]
-		k = toCamelCase(k)
-		v = toCamelCase(v)
-		name = name + tagSeperator + k + keyValueSeperator + v
-	}
+	name = mergeTagsIntoName(tags, name)
 	r.statter.Gauge(name, int64(value), r.sampleRate)
 }
 
 func (r *cactusStatsReporter) ReportTimer(name string, tags map[string]string, interval time.Duration) {
-	tagSeperator := "_"
-	keyValueSeperator := "-"
-
-	keys := make([]string, len(tags))
-	sortKeys(keys, tags)
-
-	for _, k := range keys {
-		v := tags[k]
-		k = toCamelCase(k)
-		v = toCamelCase(v)
-		name = name + tagSeperator + k + keyValueSeperator + v
-	}
-
+	name = mergeTagsIntoName(tags, name)
 	r.statter.TimingDuration(name, interval, r.sampleRate)
 }
 
@@ -166,19 +152,7 @@ func (r *cactusStatsReporter) ReportHistogramValueSamples(
 	bucketUpperBound float64,
 	samples int64,
 ) {
-	tagSeperator := "_"
-	keyValueSeperator := "-"
-
-	keys := make([]string, len(tags))
-	sortKeys(keys, tags)
-
-	for _, k := range keys {
-		v := tags[k]
-		k = toCamelCase(k)
-		v = toCamelCase(v)
-		name = name + tagSeperator + k + keyValueSeperator + v
-	}
-
+	name = mergeTagsIntoName(tags, name)
 	r.statter.Inc(
 		fmt.Sprintf("%s.%s-%s", name,
 			r.valueBucketString(bucketLowerBound),
@@ -194,19 +168,7 @@ func (r *cactusStatsReporter) ReportHistogramDurationSamples(
 	bucketUpperBound time.Duration,
 	samples int64,
 ) {
-	tagSeperator := "_"
-	keyValueSeperator := "-"
-
-	keys := make([]string, len(tags))
-	sortKeys(keys, tags)
-
-	for _, k := range keys {
-		v := tags[k]
-		k = toCamelCase(k)
-		v = toCamelCase(v)
-		name = name + tagSeperator + k + keyValueSeperator + v
-	}
-
+	name = mergeTagsIntoName(tags, name)
 	r.statter.Inc(
 		fmt.Sprintf("%s.%s-%s", name,
 			r.durationBucketString(bucketLowerBound),
